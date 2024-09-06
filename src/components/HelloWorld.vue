@@ -33,6 +33,7 @@
             <h2>{{ item.title }}</h2>
             <audio
               ref="audio"
+              @ended="onEnded"
               :src="item.url"
               @timeupdate="updateLyrics"
               controls
@@ -222,6 +223,7 @@ let startX = 0;
 let translateX = ref(0);
 let currentColor = ref(colors[currentIndex]);
 let carouselWidth = ref(window.innerWidth); // 使用 ref 使宽度响应变化
+let endedListener = ref(null);
 
 // 音乐与歌词相关变量
 const audio = ref(null);
@@ -241,16 +243,30 @@ onMounted(() => {
   const audioElement = getAudioElement();
   if (audioElement && typeof audioElement.play === "function") {
     audioElement.src = carouselItems.value[currentIndex].url;
+    audioElement.addEventListener("ended", endedListener); // 添加 ended 事件监听
   }
 });
 
 onUnmounted(() => {
   window.removeEventListener("resize", updateCarouselWidth);
+  const audioElement = getAudioElement();
+  if (audioElement) {
+    audioElement.removeEventListener("ended", handleAudioEnded); // 移除 ended 事件监听
+  }
 });
+
+const handleAudioEnded = () => {
+  console.log("下一首");
+  slideTo(currentIndex + 1); // 播放下一首
+};
 
 const handleMouseDown = (event) => {
   isDragging = true;
   startX = event.clientX;
+};
+
+const onEnded = () => {
+  handleAudioEnded();
 };
 
 const handleMouseMove = (event) => {
@@ -337,7 +353,6 @@ const updateLyrics = () => {
   if (audioElement) {
     audioElement.play();
     const currentTime = audioElement.currentTime;
-    console.log(currentTime, "currentTime");
     const timestamps = Object.keys(lyrics)
       .map(Number)
       .sort((a, b) => a - b);
@@ -354,7 +369,6 @@ const updateLyrics = () => {
       if (currentTime >= nextTimestamp) {
         currentLyrics.value = [];
       }
-      console.log(currentLyrics, "currentLyrics");
     }
   }
 };
@@ -379,6 +393,7 @@ watch(
   height: 100vh;
   overflow: hidden;
   position: relative;
+  z-index: 9999;
 }
 
 .carousel-wrapper {
